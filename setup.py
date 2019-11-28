@@ -22,6 +22,7 @@ setup(
     description="Python interface to FTDI official driver d2xx",
     long_description=long_description,
     long_description_content_type="text/x-rst",
+    license="GNU GPLv3",
     keywords="ftd2xx pyftd2xx d2xx pyd2xx ftdi pyftdi wrapper",
     classifiers=[
         "Programming Language :: Python :: 3",
