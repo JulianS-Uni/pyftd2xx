@@ -10,34 +10,23 @@ import os
 import sys
 mydir = os.path.dirname(__file__)
 
-with open(os.path.join(mydir, 'myversion.txt'), 'r') as f:
-    version = f.read().strip()
-
-with open('README.rst') as f:
+with open('README.md') as f:
     long_description = f.read()
 
 setup(
-    name="ftd2xx",
-    version=version,
+    name="pyftd2xx",
+    version=0.9,
     packages=find_packages(),
     # metadata for upload to PyPI
-    author="Satya Mishra",
-    author_email="satya.devel@gmail.com",
-    description="Python interface to ftd2xx.dll from FTDI using ctypes based on d2xx by Pablo Bleyer",
+    author="Julian Sp",
+    description="Python interface to FTDI official driver d2xx",
     long_description=long_description,
     long_description_content_type="text/x-rst",
-    license="MIT",
-    keywords="ftd2xx d2xx ftdi",
+    keywords="ftd2xx pyftd2xx d2xx pyd2xx ftdi pyftdi wrapper",
     classifiers=[
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    url='https://github.com/snmishra/ftd2xx',  # project home page, if any
-    zip_safe=False,
-    test_suite="ftd2xx.tests.t_ftd2xx",
-    cmdclass = {'build_py': build_py, 'build_scripts': build_scripts},
-    # could also include long_description, download_url, classifiers, etc.
-    install_requires=(['future',
-                       'pywin32; platform_system == "Windows"'])
+    url='https://github.com/JulianS-Uni/pyftd2xx',  # project home page, if any
+    install_requires=([])
 )
