@@ -1324,6 +1324,7 @@ FT_Reload.__doc__ = \
     .\ftd2xx.h:1355"""
 # .\ftd2xx.h:1361
 # C:\Program Files (x86)\Windows Kits\10\include\10.0.18362.0\shared\minwindef.h:170
+LONG = ctypes.c_int32
 LPLONG = POINTER_T(ctypes.c_int32)
 # .\ftd2xx.h 1361
 FT_GetComPortNumber = _libraries['ftd2xx.dll'].FT_GetComPortNumber
