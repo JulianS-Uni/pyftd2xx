@@ -3,15 +3,15 @@
 [pyftd2xx](https://github.com/JulianS-Uni/pyftd2xx) is a simple python wrapper around the official [d2xx FTDI driver](https://www.ftdichip.com/Drivers/D2XX.htm) libraries.
 In order for this python module to work you need this driver to be installed and working.
 
-Version 0.9 is the first release and compatible with Python 3.
+Version 0.91 is the first release and compatible with Python 3.
 
 ## Usage
 
-This module is not really ment to be used on its own as it only provides bare functions. A documentation is available from FTDI [here](https://www.ftdichip.com/Support/Documents/ProgramGuides/D2XX_Programmer's_Guide(FT_000071).pdf). Those C functions are wrapped in a pythonic way, so that one does not need to mess around with pointers amd references. The naming of function and parameters should match with the documentation except they would violate Python buildins like `type`. Then they are prefixed with a `_`.
+This module is not really ment to be used on its own as it only provides bare functions. A documentation is available from FTDI [here](https://www.ftdichip.com/Support/Documents/ProgramGuides/D2XX_Programmer's_Guide(FT_000071).pdf). Those C functions are wrapped in a pythonic way, so that one does not need to mess around with pointers amd references. The naming of function and parameters should match with the documentation, although that violates PEP 8.
 
-### Example:
+### Example
 
-So instead of declaring each variable in advance, let the function change them and then check them, one can just call it and get all the results.
+So instead of doing the 'C-Style', with declaring each variable in advance and let the function change them, one can just call it and get all the results as a Munch.
 
 C way to do it:
 
@@ -37,7 +37,7 @@ import pyftd2xx as ft
 
 ft.createDeviceInfoList()
 result = ft.getDeviceInfoDetail(index=0)
-print(result)   #{'index': 0, 'flags': 2, 'type': 8, 'id': 67330068, 'location': 25, 'serial': b'', 'description': b'Single RS232-HS', 'handle': c_void_p(None)}
+print(result)   #Munch({'Index': 0, 'Flags': 2, 'Type': 8, 'ID': 67330068, 'Location': 25, 'SerialName': b'', 'Description': b'Single RS232-HS', 'Handle': c_void_p(None)})
 ```
 
 ## Credits
