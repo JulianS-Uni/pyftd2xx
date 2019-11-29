@@ -15,7 +15,7 @@ elif sys.platform == 'darwin':
 
 import ctypes as c
 from . import defines as FT
-from munch import Munch as M
+from munch import Munch as ret
 
 
 class StatusError(Exception):
@@ -26,56 +26,57 @@ class StatusError(Exception):
     def __str__(self):
         return self.message
  
-def checkFT(status):
+def check_status(status):
     """Call an FTDI function and check the status. Raise exception on error"""
     if not FT.SUCCESS(status):
         raise StatusError(status)
 
-def getVIDPID():
-    """Linux only. Get the VID and PID of the device"""
-    vid = lib.DWORD()
-    pid = lib.DWORD()
-    checkFT(lib.FT_GetVIDPID(c.byref(vid), c.byref(pid)))
-    return (vid.value, pid.value)
-
-def setVIDPID(vid, pid):
+def SetVIDPID(VID, PID):
     """Linux only. Set the VID and PID of the device"""
-    checkFT(lib.FT_SetVIDPID(lib.DWORD(vid), lib.DWORD(pid)))
+    check_status(lib.FT_SetVIDPID(lib.DWORD(VID), lib.DWORD(PID)))
     return None
 
-def createDeviceInfoList():
+def GetVIDPID():
+    """Linux only. Get the VID and PID of the device"""
+    VID = lib.DWORD()
+    PID = lib.DWORD()
+    check_status(lib.FT_GetVIDPID(c.byref(VID), c.byref(PID)))
+    return ret(VID = VID.value, PID = PID.value)
+
+def CreateDeviceInfoList():
     """Create the internal device info list and return number of entries"""
-    numDevs = lib.DWORD()
-    checkFT(lib.FT_CreateDeviceInfoList(c.byref(numDevs)))
-    return numDevs.value
+    NumDevs = lib.DWORD()
+    check_status(lib.FT_CreateDeviceInfoList(c.byref(NumDevs)))
+    return NumDevs.value
 
-def getDeviceInfoList():
-    pass
+def GetDeviceInfoList():
+    """Not implemented"""
+    raise NotImplementedError()
 
-def getDeviceInfoDetail(index=0):
+def GetDeviceInfoDetail(Index=0):
     """Get an entry from the internal device info list. Set update to
     False to avoid a slow call to createDeviceInfoList."""
-    flags = lib.DWORD()
-    _type = lib.DWORD()
-    _id = lib.DWORD()
-    locId = lib.DWORD()
-    handle = lib.FT_HANDLE()
-    serialNumber = c.c_buffer(FT.MAX_DESCRIPTION_SIZE)
-    description = c.c_buffer(FT.MAX_DESCRIPTION_SIZE)
-    checkFT(lib.FT_GetDeviceInfoDetail(lib.DWORD(index), c.byref(flags),
-            c.byref(_type), c.byref(_id), c.byref(locId), serialNumber,
-            description, c.byref(handle)))
-    return M({'index': index, 'flags': flags.value, 'type': _type.value,
-            'id': _id.value, 'location': locId.value,
-            'serial': serialNumber.value, 'description': description.value,
-            'handle': handle})
+    Flags = lib.DWORD()
+    Type = lib.DWORD()
+    ID = lib.DWORD()
+    LocId = lib.DWORD()
+    Handle = lib.FT_HANDLE()
+    SerialNumber = c.c_buffer(FT.MAX_DESCRIPTION_SIZE)
+    Description = c.c_buffer(FT.MAX_DESCRIPTION_SIZE)
+    check_status(lib.FT_GetDeviceInfoDetail(lib.DWORD(Index), c.byref(Flags),
+            c.byref(Type), c.byref(ID), c.byref(LocId), SerialNumber,
+            Description, c.byref(Handle)))
+    return ret(Index = Index, Flags = Flags.value, Type = Type.value,
+            ID = ID.value, Location = LocId.value,
+            SerialNumber = SerialNumber.value, Description = Description.value,
+            Handle = Handle)
 
-def listDevices(flags=0):
+def ListDevices(flags=0):
     """Return a list of serial numbers(default), descriptions or
     locations (Windows only) of the connected FTDI devices depending on value
     of flags"""
     n = lib.DWORD()
-    checkFT(lib.FT_ListDevices(c.byref(n), None, lib.DWORD(FT.LIST_NUMBER_ONLY)))
+    check_status(lib.FT_ListDevices(c.byref(n), None, lib.DWORD(FT.LIST_NUMBER_ONLY)))
     devcount = n.value
     if devcount:
         # since ctypes has no pointer arithmetic.
@@ -85,327 +86,299 @@ def listDevices(flags=0):
         ba = (c.c_char_p *(devcount + 1))()
         for i in range(devcount):
             ba[i] = c.cast(bd[i], c.c_char_p)
-        checkFT(lib.FT_ListDevices(ba, c.byref(n), lib.DWORD(FT.LIST_ALL|flags)))
+        check_status(lib.FT_ListDevices(ba, c.byref(n), lib.DWORD(FT.LIST_ALL|flags)))
         return [res for res in ba[:devcount]]
     else:
         return None
 
-def open(device=0):
-    """Open a handle to a usb device by index and return an FTD2XX instance for
+def Open(Device=0):
+    """Open a Handle to a usb device by index and return an FTD2XX instance for
     it"""
-    handle = lib.FT_HANDLE()
-    checkFT(lib.FT_Open(device, c.byref(handle)))
-    return handle
+    Handle = lib.FT_HANDLE()
+    check_status(lib.FT_Open(Device, c.byref(Handle)))
+    return Handle
 
-def openEx(arg1, flags=FT.OPEN_BY_SERIAL_NUMBER):
-    """Open a handle to a usb device by serial number(default), description or
+def OpenEx(Arg1, Flags):
+    """Open a Handle to a usb device by serial number(default), description or
     location(Windows only) depending on value of flags and return an FTD2XX
     instance for it"""
-    handle = lib.FT_HANDLE()
-    checkFT(lib.FT_OpenEx(c.create_string_buffer(arg1), lib.DWORD(flags), c.byref(handle)))
-    return handle
+    Handle = lib.FT_HANDLE()
+    check_status(lib.FT_OpenEx(c.create_string_buffer(Arg1), lib.DWORD(Flags), c.byref(Handle)))
+    return Handle
 
-def close(handle):
-    """Close the device handle"""
-    checkFT(lib.FT_Close(handle))
+def Close(Handle):
+    """Close the device Handle"""
+    check_status(lib.FT_Close(Handle))
     return None
 
-def read(handle, bytesToRead):
+def Read(Handle, BytesToRead):
     """Read up to nchars bytes of data from the device. Can return fewer if
     timedout. Use getQueueStatus to find how many bytes are available"""
-    bytesReturned = lib.DWORD()
-    buffer = c.create_string_buffer(bytesToRead)
-    checkFT(lib.FT_Read(handle, buffer, bytesToRead, c.byref(bytesReturned)))
-    return buffer.raw[:bytesReturned.value]
+    Buffer = c.create_string_buffer(BytesToRead)
+    BytesReturned = lib.DWORD()
+    check_status(lib.FT_Read(Handle, Buffer, lib.DWORD(BytesToRead), c.byref(BytesReturned)))
+    return Buffer.raw[0:BytesReturned.value]
 
-def write(handle, buffer, bytesToWrite=None):
+def Write(Handle, Buffer, BytesToWrite):
     """Send the data to the device. Data must be a string representing the
     bytes to be sent"""
-    if bytesToWrite is None:
-        bytesToWrite = len(buffer)
-    bytesWritten = lib.DWORD()
-    checkFT(lib.FT_Write(handle, buffer, len(buffer), c.byref(bytesWritten)))
-    return bytesWritten.value
+    BytesWritten = lib.DWORD()
+    check_status(lib.FT_Write(Handle, c.create_string_buffer(Buffer), lib.DWORD(BytesToWrite), c.byref(BytesWritten)))
+    return BytesWritten.value
 
-def setBaudRate(handle, baudRate):
+def SetBaudRate(Handle, BaudRate):
     """Set the baud rate"""
-    checkFT(lib.FT_SetBaudRate(handle, lib.DWORD(baudRate)))
+    check_status(lib.FT_SetBaudRate(Handle, lib.DWORD(BaudRate)))
     return None
 
-def setDivisor(handle, divisor):
+def SetDivisor(Handle, Divisor):
     """Set the clock divider. The clock will be set to 6e6/(div + 1)."""
-    checkFT(lib.FT_SetDivisor(handle, lib.USHORT(divisor)))
+    check_status(lib.FT_SetDivisor(Handle, lib.USHORT(Divisor)))
     return None
 
-def setDataCharacteristics(handle, wordLength, stopBits, parity):
+def SetDataCharacteristics(Handle, WordLength, StopBits, Parity):
     """Set the data characteristics for UART"""
-    checkFT(lib.FT_SetDataCharacteristics(handle,
-            lib.UCHAR(wordLength), lib.UCHAR(stopBits), lib.UCHAR(parity)))
+    check_status(lib.FT_SetDataCharacteristics(Handle,
+            lib.UCHAR(WordLength), lib.UCHAR(StopBits), lib.UCHAR(Parity)))
     return None
 
-def setTimeouts(handle, readTimeout, writeTimeout):
-    checkFT(lib.FT_SetTimeouts(handle, lib.DWORD(readTimeout),
-            lib.DWORD(writeTimeout)))
+def SetTimeouts(Handle, ReadTimeout, WriteTimeout):
+    check_status(lib.FT_SetTimeouts(Handle, lib.DWORD(ReadTimeout),
+            lib.DWORD(WriteTimeout)))
     return None
 
-def setFlowControl(handle, flowControl, xOn=-1, xOff=-1):
-    if flowControl == FT.FLOW_XON_XOFF and (xOn == -1 or xOff == -1):
-        raise ValueError
-    checkFT(lib.FT_SetFlowControl(handle,
-            lib.USHORT(flowControl), lib.UCHAR(xOn), lib.UCHAR(xOff)))
+def SetFlowControl(Handle, FlowControl, Xon, Xoff):
+    check_status(lib.FT_SetFlowControl(Handle,
+            lib.USHORT(FlowControl), lib.UCHAR(Xon), lib.UCHAR(Xoff)))
     return None
 
-def setDtr(handle):
-    checkFT(lib.FT_SetDtr(handle))
+def SetDtr(Handle):
+    check_status(lib.FT_SetDtr(Handle))
     return None
 
-def clrDtr(handle):
-    checkFT(lib.FT_ClrDtr(handle))
+def ClrDtr(Handle):
+    check_status(lib.FT_ClrDtr(Handle))
     return None
 
-def setRts(handle):
-    checkFT(lib.FT_SetRts(handle))
+def SetRts(Handle):
+    check_status(lib.FT_SetRts(Handle))
     return None
 
-def clrRts(handle):
-    checkFT(lib.FT_ClrRts(handle))
+def ClrRts(Handle):
+    check_status(lib.FT_ClrRts(Handle))
     return None
 
-def getModemStatus(handle):
-    modemStatus = lib.DWORD()
-    checkFT(lib.FT_GetModemStatus(handle, c.byref(modemStatus)))
-    return modemStatus.value
+def GetModemStatus(Handle):
+    ModemStatus = lib.DWORD()
+    check_status(lib.FT_GetModemStatus(Handle, c.byref(ModemStatus)))
+    return ModemStatus.value
 
-def getQueueStatus(handle):
+def GetQueueStatus(Handle):
     """Get number of bytes in receive queue."""
-    amountInRxQueue = lib.DWORD()
-    checkFT(lib.FT_GetQueueStatus(handle, c.byref(amountInRxQueue)))
-    return amountInRxQueue.value
+    AmountInRxQueue = lib.DWORD()
+    check_status(lib.FT_GetQueueStatus(Handle, c.byref(AmountInRxQueue)))
+    return AmountInRxQueue.value
 
-def getDeviceInfo(handle):
+def GetDeviceInfo(Handle):
     """Returns a dictionary describing the device. """
-    type = lib.DWORD()
-    id = lib.DWORD()
-    description = c.c_buffer(FT.MAX_DESCRIPTION_SIZE)
-    serialNumber = c.c_buffer(FT.MAX_DESCRIPTION_SIZE)
-    dummy = None
-
-    checkFT(lib.FT_GetDeviceInfo(handle, c.byref(type),
-            c.byref(id), serialNumber, description, dummy))
-    return M({'type': type.value, 'id': id.value,
-            'description': description.value, 'serial': serialNumber.value})
+    Type = lib.FT_DEVICE()
+    ID = lib.DWORD()
+    Description = c.create_string_buffer(FT.MAX_DESCRIPTION_SIZE)
+    SerialNumber = c.create_string_buffer(FT.MAX_DESCRIPTION_SIZE)
+    Dummy = lib.PVOID()
+    check_status(lib.FT_GetDeviceInfo(Handle, c.byref(Type),
+            c.byref(ID), SerialNumber, Description, Dummy))
+    return ret(Type = Type.value, ID = ID.value,
+             SerialNumber = SerialNumber.value, Description = Description.value)
     
-def getDriverVersion(handle):
-    driverVersion = lib.DWORD()
-    checkFT(lib.FT_GetDriverVersion(handle, c.byref(driverVersion)))
-    return driverVersion.value
+def GetDriverVersion(Handle):
+    DriverVersion = lib.DWORD()
+    check_status(lib.FT_GetDriverVersion(Handle, c.byref(DriverVersion)))
+    return DriverVersion.value
 
-def getLibraryVersion():
+def GetLibraryVersion():
     """Return a long representing library version"""
-    dllVersion = lib.DWORD()
-    checkFT(lib.FT_GetLibraryVersion(c.byref(dllVersion)))
-    return dllVersion.value
+    DLLVersion = lib.DWORD()
+    check_status(lib.FT_GetLibraryVersion(c.byref(DLLVersion)))
+    return DLLVersion.value
 
-def getComPortNumber(handle):
+def GetComPortNumber(Handle):
     """Return a long representing the COM port number"""
-    comPortNumber = lib.LONG()
-    checkFT(lib.FT_GetComPortNumber(handle, c.byref(comPortNumber)))
-    return comPortNumber.value
+    ComPortNumber = lib.LONG()
+    check_status(lib.FT_GetComPortNumber(Handle, c.byref(ComPortNumber)))
+    return ComPortNumber.value
 
-def getStatus(handle):
+def GetStatus(Handle):
     """Return a 3-tuple of rx queue bytes, tx queue bytes and event
     status"""
-    amountInRxQueue = lib.DWORD()
-    amountInTxQueue = lib.DWORD()
-    eventStatus = lib.DWORD()
-    checkFT(lib.FT_GetStatus(handle, c.byref(amountInRxQueue),
-            c.byref(amountInTxQueue), c.byref(eventStatus)))
-    return (amountInRxQueue.value, amountInTxQueue.value, eventStatus.value)
+    AmountInRxQueue = lib.DWORD()
+    AmountInTxQueue = lib.DWORD()
+    EventStatus = lib.DWORD()
+    check_status(lib.FT_GetStatus(Handle, c.byref(AmountInRxQueue),
+            c.byref(AmountInTxQueue), c.byref(EventStatus)))
+    return ret(AmountInRxQueue = AmountInRxQueue.value, AmountInTxQueue = AmountInTxQueue.value, EventStatus = EventStatus.value)
 
-def setEventNotification(handle, eventMask, arg):
-    checkFT(lib.FT_SetEventNotification(handle,
-            lib.DWORD(eventMask), lib.HANDLE(arg)))
+def SetEventNotification(Handle, EventMask, Arg):
+    check_status(lib.FT_SetEventNotification(Handle,
+            lib.DWORD(EventMask), lib.PVOID(Arg)))
     return None
 
-def setChars(handle, eventCh, eventChEn, errorCh, errorChEn):
-    checkFT(lib.FT_SetChars(handle, lib.UCHAR(eventCh),
-            lib.UCHAR(eventChEn), lib.UCHAR(errorCh), lib.UCHAR(errorChEn)))
+def SetChars(Handle, EventCh, EventChEn, ErrorCh, ErrorChEn):
+    check_status(lib.FT_SetChars(Handle, lib.UCHAR(EventCh),
+            lib.UCHAR(EventChEn), lib.UCHAR(ErrorCh), lib.UCHAR(ErrorChEn)))
     return None
 
-def setBreakOn(handle):
-    checkFT(lib.FT_SetBreakOn(handle))
+def SetBreakOn(Handle):
+    check_status(lib.FT_SetBreakOn(Handle))
     return None
 
-def setBreakOff(handle):
-    checkFT(lib.FT_SetBreakOff(handle))
+def SetBreakOff(Handle):
+    check_status(lib.FT_SetBreakOff(Handle))
     return None
 
-def purge(handle, mask):
-    checkFT(lib.FT_Purge(handle, lib.DWORD(mask)))
+def Purge(Handle, Mask):
+    check_status(lib.FT_Purge(Handle, lib.DWORD(Mask)))
     return None
     
-def resetDevice(handle):
+def ResetDevice(Handle):
     """Reset the device"""
-    checkFT(lib.FT_ResetDevice(handle))
+    check_status(lib.FT_ResetDevice(Handle))
     return None
 
-def resetPort(handle):
-    checkFT(lib.FT_ResetPort(handle))
+def ResetPort(Handle):
+    check_status(lib.FT_ResetPort(Handle))
     return None
 
-def cyclePort(handle):
-    checkFT(lib.FT_CyclePort(handle))
+def CyclePort(Handle):
+    check_status(lib.FT_CyclePort(Handle))
     return None
 
-def rescan():
-    checkFT(lib.FT_Rescan())
+def Rescan():
+    check_status(lib.FT_Rescan())
     return None
 
-def reload(vid, pid):
-    checkFT(lib.FT_Reload(lib.WORD(vid), lib.WORD(pid)))
+def Reload(VID, PID):
+    check_status(lib.FT_Reload(lib.WORD(VID), lib.WORD(PID)))
     return None
 
-def setResetPipeRetryCount(handle, count):
-    checkFT(lib.FT_SetResetPipeRetryCount(handle, lib.DWORD(count)))
+def SetResetPipeRetryCount(Handle, Count):
+    check_status(lib.FT_SetResetPipeRetryCount(Handle, lib.DWORD(Count)))
     return None
 
-def stopInTask(handle):
-    checkFT(lib.FT_StopInTask(handle))
+def StopInTask(Handle):
+    check_status(lib.FT_StopInTask(Handle))
     return None
 
-def restartInTask(handle):
-    checkFT(lib.FT_RestartInTask(handle))
+def RestartInTask(Handle):
+    check_status(lib.FT_RestartInTask(Handle))
     return None
 
-def setDeadmanTimeout(handle, timeout):
-    checkFT(lib.FT_SetDeadmanTimeout(handle, lib.DWORD(timeout)))
+def SetDeadmanTimeout(Handle, DeadmanTimeout):
+    check_status(lib.FT_SetDeadmanTimeout(Handle, lib.DWORD(DeadmanTimeout)))
     return None
 
-def ioCtl(handle):
+def IoCtl(Handle):
     """Not implemented"""
-    pass
+    raise NotImplementedError()
 
-def setWaitMask(handle, mask):
-    checkFT(lib.FT_SetWaitMask(handle, lib.DWORD(mask)))
-    return None
+def SetWaitMask(Handle, mask):
+    """Not implemented"""
+    raise NotImplementedError()
 
-def waitOnMask(handle):
-    mask = lib.DWORD()
-    checkFT(lib.FT_WaitOnMask(handle, c.byref(mask)))
-    return mask.value
+def WaitOnMask(Handle):
+    """Not implemented"""
+    raise NotImplementedError()
 
-def readEE():
-    pass
+def ReadEE():
+    """Not implemented"""
+    raise NotImplementedError()
 
-def writeEE():
-    pass
+def WriteEE():
+    """Not implemented"""
+    raise NotImplementedError()
 
-def eraseEE():
-    pass
+def EraseEE():
+    """Not implemented"""
+    raise NotImplementedError()
 
-def eeRead(handle):
-    """Get the program information from the EEPROM"""
-##        if self.devInfo['type'] == 4:
-##            version = 1
-##        elif self.devInfo['type'] == 5:
-##            version = 2
-##        else:
-##            version = 0
-    progdata = lib.ft_program_data(
-                    Signature1=0, Signature2=0xffffffff,
-                    Version=2,
-                    Manufacturer = c.cast(c.c_buffer(256), c.c_char_p),
-                    ManufacturerId = c.cast(c.c_buffer(256), c.c_char_p),
-                    Description = c.cast(c.c_buffer(256), c.c_char_p),
-                    SerialNumber = c.cast(c.c_buffer(256), c.c_char_p))
+def EE_Read():
+    """Not implemented"""
+    raise NotImplementedError()
 
-    checkFT(lib.FT_EE_Read(handle, c.byref(progdata)))
-    return progdata
+def EE_ReadEx():
+    """Not implemented"""
+    raise NotImplementedError()
 
-def eeReadEx():
-    pass
-
-def eeProgram(handle, progdata=None, *args, **kwds):
-    """Program the EEPROM with custom data. If SerialNumber is null, a new
-    serial number is generated from ManufacturerId"""
-    if progdata is None:
-        progdata = lib.ft_program_data(**kwds)
-##        if self.devInfo['type'] == 4:
-##            version = 1
-##        elif self.devInfo['type'] == 5:
-##            version = 2
-##        else:
-##            version = 0
-    progdata.Signature1 = lib.DWORD(0)
-    progdata.Signature2 = lib.DWORD(0xffffffff)
-    progdata.Version = lib.DWORD(2)
-    checkFT(lib.FT_EE_Program(handle, progdata))
-    return None
+def EE_Program():
+    """Not implemented"""
+    raise NotImplementedError()
     
-def eeProgramEx():
-    pass
+def EE_ProgramEx():
+    """Not implemented"""
+    raise NotImplementedError()
 
-def eeUASize(handle):
+def EE_UASize(Handle):
     """Get the EEPROM user area size"""
-    uasize = lib.DWORD()
-    checkFT(lib.FT_EE_UASize(handle, c.byref(uasize)))
-    return uasize.value
+    Size = lib.DWORD()
+    check_status(lib.FT_EE_UASize(Handle, c.byref(Size)))
+    return Size.value
 
-def eeUARead(handle, b_to_read):
+def EE_UARead(Handle, DataLen):
     """Read b_to_read bytes from the EEPROM user area"""
-    b_read = lib.DWORD()
-    buf = c.c_buffer(b_to_read)
-    checkFT(lib.FT_EE_UARead(handle, c.cast(buf, lib.PUCHAR),
-            b_to_read, c.byref(b_read)))
-    return buf.value[:b_read.value]
+    Data = c.create_string_buffer(DataLen)
+    BytesRead = lib.DWORD()
+    check_status(lib.FT_EE_UARead(Handle, Data,
+            lib.DWORD(DataLen), c.byref(BytesRead)))
+    return Data.raw[0:BytesRead.value]
 
-def eeUAWrite(handle, data):
+def EE_UAWrite(Handle, Data, DataLen):
     """Write data to the EEPROM user area. data must be a string with
     appropriate byte values"""
-    checkFT(lib.FT_EE_UAWrite(handle, c.cast(data, lib.PUCHAR),
-            len(data)))
+    check_status(lib.FT_EE_UAWrite(Handle, c.create_string_buffer(Data), lib.DWORD(DataLen)))
     return None
 
-def eepromRead():
-    pass
+def EEPROM_Read():
+    """Not implemented"""
+    raise NotImplementedError()
 
-def eepromProgram():
-    pass
+def EEPROM_Program():
+    """Not implemented"""
+    raise NotImplementedError()
 
-def setLatencyTimer(handle, latency):
-    checkFT(lib.FT_SetLatencyTimer(handle, lib.UCHAR(latency)))
+def SetLatencyTimer(Handle, Timer):
+    check_status(lib.FT_SetLatencyTimer(Handle, lib.UCHAR(Timer)))
     return None
 
-def getLatencyTimer(handle):
-    latency = lib.UCHAR()
-    checkFT(lib.FT_GetLatencyTimer(handle, c.byref(latency)))
-    return latency.value
+def GetLatencyTimer(Handle):
+    Timer = lib.UCHAR()
+    check_status(lib.FT_GetLatencyTimer(Handle, c.byref(Timer)))
+    return Timer.value
 
-def setBitMode(handle, mask, enable):
-    checkFT(lib.FT_SetBitMode(handle, lib.UCHAR(mask),
-            lib.UCHAR(enable)))
+def SetBitMode(Handle, Mask, Mode):
+    check_status(lib.FT_SetBitMode(Handle, lib.UCHAR(Mask),
+            lib.UCHAR(Mode)))
     return None
 
-def getBitMode(handle):
-    mask = lib.UCHAR()
-    checkFT(lib.FT_GetBitMode(handle, c.byref(mask)))
-    return mask.value
+def GetBitMode(Handle):
+    Mode = lib.UCHAR()
+    check_status(lib.FT_GetBitMode(Handle, c.byref(Mode)))
+    return Mode.value
 
-def setUSBParameters(handle, in_tx_size, out_tx_size=0):
-    checkFT(lib.FT_SetUSBParameters(handle, lib.ULONG(in_tx_size),
-            lib.ULONG(out_tx_size)))
+def SetUSBParameters(Handle, InTransferSize, OutTransferSize=0):
+    check_status(lib.FT_SetUSBParameters(Handle, lib.DWORD(InTransferSize),
+            lib.DWORD(OutTransferSize)))
     return None
 
-__all__ = ['close', 'clrDtr', 'clrRts', 'createDeviceInfoList', 'cyclePort',
-'eeProgram', 'eeProgramEx', 'eeRead', 'eeReadEx','eeUARead', 'eeUASize',
-'eeUAWrite', 'eepromProgram', 'eepromRead', 'eraseEE',
-'getBitMode', 'getComPortNumber', 'getDeviceInfo', 'getDeviceInfoDetail',
-'getDeviceInfoList', 'getDriverVersion', 'getLatencyTimer', 'getLibraryVersion',
-'getModemStatus', 'getQueueStatus', 'getStatus', 'getVIDPID', 'ioCtl',
-'listDevices', 'open', 'openEx', 'purge', 'read', 'readEE', 'reload', 'rescan',
-'resetDevice', 'resetPort', 'restartInTask', 'setBaudRate', 'setBitMode',
-'setBreakOff', 'setBreakOn', 'setChars', 'setDataCharacteristics',
-'setDeadmanTimeout', 'setDivisor', 'setDtr', 'setEventNotification', 'setFlowControl',
-'setLatencyTimer', 'setResetPipeRetryCount', 'setRts', 'setTimeouts',
-'setUSBParameters', 'setVIDPID', 'setWaitMask', 'stopInTask', 'waitOnMask',
-'write', 'writeEE']
+__all__ = ['Close', 'ClrDtr', 'ClrRts', 'CreateDeviceInfoList', 'CyclePort',
+'EE_Program', 'EE_ProgramEx', 'EE_Read', 'EE_ReadEx','EE_UARead', 'EE_UASize',
+'EE_UAWrite', 'EEPROM_Program', 'EEPROM_Read', 'EraseEE',
+'GetBitMode', 'GetComPortNumber', 'GetDeviceInfo', 'GetDeviceInfoDetail',
+'GetDeviceInfoList', 'GetDriverVersion', 'GetLatencyTimer', 'GetLibraryVersion',
+'GetModemStatus', 'GetQueueStatus', 'GetStatus', 'GetVIDPID', 'IoCtl',
+'ListDevices', 'Open', 'OpenEx', 'Purge', 'Read', 'ReadEE', 'Reload', 'Rescan',
+'ResetDevice', 'ResetPort', 'RestartInTask', 'SetBaudRate', 'SetBitMode',
+'SetBreakOff', 'SetBreakOn', 'SetChars', 'SetDataCharacteristics',
+'SetDeadmanTimeout', 'SetDivisor', 'SetDtr', 'SetEventNotification', 'SetFlowControl',
+'SetLatencyTimer', 'SetResetPipeRetryCount', 'SetRts', 'SetTimeouts',
+'SetUSBParameters', 'SetVIDPID', 'SetWaitMask', 'StopInTask', 'WaitOnMask',
+'Write', 'WriteEE']
