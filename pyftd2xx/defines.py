@@ -48,13 +48,11 @@ SUCCESS = lambda status: status == OK
 OPEN_BY_SERIAL_NUMBER = 1
 OPEN_BY_DESCRIPTION = 2
 OPEN_BY_LOCATION = 4
-OPEN_MASK = OPEN_BY_SERIAL_NUMBER | OPEN_BY_DESCRIPTION | OPEN_BY_LOCATION
 
 # List Devices flags
 LIST_NUMBER_ONLY = 0x80000000
 LIST_BY_INDEX = 0x40000000
 LIST_ALL = 0x20000000
-FT_LIST_MASK = LIST_NUMBER_ONLY | LIST_BY_INDEX | LIST_ALL
 
 # Baud Rates
 
@@ -215,10 +213,16 @@ DRIVER_TYPE_VCP = 1
 
 # Device information flags
 DEVICE_INFO_FLAGS = {
-    1: 'FT_FLAGS_OPENED',
-    2: 'FT_FLAGS_HISPEED',
+    1: 'FLAGS_OPENED',
+    2: 'FLAGS_HISPEED',
 }
 FLAGS_OPENED = 1
 FLAGS_HISPEED = 2
 
 MAX_DESCRIPTION_SIZE = 256
+
+def JOIN_FLAGS(flags):
+    ret_flags = 0
+    for flag in flags:
+        ret_flags |= flag
+    return ret_flags
