@@ -3,7 +3,10 @@
 [pyftd2xx](https://github.com/JulianS-Uni/pyftd2xx) is a simple python wrapper around the official [d2xx FTDI driver](https://www.ftdichip.com/Drivers/D2XX.htm) libraries.
 In order for this python module to work you need this driver to be installed and working.
 
-Version 0.91 is the first release and compatible with Python 3.
+Version 0.95 is the first release and compatible with Python 3.
+Next Versions will have more docstrings and more functions available.
+EEPROM functions are planned after release 1.0.
+Also Linux and MAC OS support is planned to be beyond 1.0 release.
 
 ## Usage
 
@@ -36,8 +39,8 @@ Python way to do it:
 import pyftd2xx as ft
 
 ft.createDeviceInfoList()
-result = ft.getDeviceInfoDetail(index=0)
-print(result)   #Munch({'Index': 0, 'Flags': 2, 'Type': 8, 'ID': 67330068, 'Location': 25, 'SerialName': b'', 'Description': b'Single RS232-HS', 'Handle': c_void_p(None)})
+result = ft.getDeviceInfoDetail(Index=0)
+print(result)   #{'Flags': ['FLAGS_OPENED', 'FLAGS_HISPEED'], 'Type': 'FT_DEVICE_2232H', 'ID': 67330064, 'LocId': 401, 'SerialNumber': 'A', 'Description': 'Dual RS232-HS A', 'Handle': c_void_p(None)})
 ```
 
 ## Credits

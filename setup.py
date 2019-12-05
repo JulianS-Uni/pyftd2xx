@@ -15,7 +15,7 @@ with open('README.md') as f:
 
 setup(
     name="pyftd2xx",
-    version=0.91,
+    version=0.95,
     packages=find_packages(),
     # metadata for upload to PyPI
     author="Julian Sp",
