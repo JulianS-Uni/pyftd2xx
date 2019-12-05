@@ -1,3 +1,3 @@
 from .pyftd2xx import *
-from . import defines as FT
+from . import _defines as FT
 
