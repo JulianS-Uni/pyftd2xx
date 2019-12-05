@@ -5,16 +5,9 @@ Programming Guide. This module is based on Pablo Bleyers d2xx module,
 except this uses ctypes instead of an extension approach.
 """
 
-import sys as _sys
-if _sys.platform == 'win32':
-    from . import ftd2xx_win32 as _lib 
-elif _sys.platform.startswith('linux'):
-    from . import ftd2xx_linux as _lib
-elif _sys.platform == 'darwin':
-    from . import ftd2xx_darwin as _lib
-
 import ctypes as _c
-from . import defines as _FT
+from . import _ftd2xx as _lib
+from . import _defines as _FT
 from munch import Munch as _ret
 
 
